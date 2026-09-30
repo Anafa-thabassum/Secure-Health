@@ -30,6 +30,13 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+!backend_securehealth/.env.example
+
+# backend dependencies and local recovery artifacts
+backend_securehealth/node_modules/
+backend_securehealth/.env
+backend_securehealth/.gitignore*
 
 # vercel
 .vercel

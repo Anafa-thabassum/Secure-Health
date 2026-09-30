@@ -1,0 +1,188 @@
+openapi: 3.1.0
+info:
+  title: SecureHealth Zero-Trust API
+  version: 1.0.0
+  description: Explainable authorization, consent, clinical data protection, audit integrity, Sentinel, emergency access, and FHIR gateway APIs for the SecureHealth academic prototype.
+servers:
+  - url: http://localhost:12000/api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Authentication
+  - name: Authorization
+  - name: Consent
+  - name: Clinical Data
+  - name: Security Operations
+  - name: Audit Integrity
+  - name: Emergency Access
+  - name: Sentinel
+  - name: FHIR
+paths:
+  /auth/register:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Register a patient account
+      requestBody: { $ref: '#/components/requestBodies/Register' }
+      responses: { '201': { description: Account and tokens created }, '400': { $ref: '#/components/responses/Error' } }
+  /auth/login:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Authenticate and create a refresh session
+      requestBody: { $ref: '#/components/requestBodies/Login' }
+      responses: { '200': { description: Authenticated }, '401': { $ref: '#/components/responses/Error' } }
+  /auth/refresh:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Rotate refresh session and issue new tokens
+      responses: { '200': { description: Tokens rotated }, '401': { $ref: '#/components/responses/Error' } }
+  /auth/logout:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Revoke a refresh session
+      responses: { '204': { description: Session revoked } }
+  /auth/forgot-password:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Request a single-use password reset token
+      responses: { '200': { description: Request accepted without account enumeration } }
+  /auth/reset-password:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Reset password and revoke active refresh sessions
+      responses: { '200': { description: Password changed }, '400': { $ref: '#/components/responses/Error' } }
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Read the authenticated subject
+      responses: { '200': { description: Current user }, '401': { $ref: '#/components/responses/Error' } }
+  /access/evaluate:
+    post:
+      tags: [Authorization]
+      summary: Evaluate identity, RBAC, ABAC, consent, resource, and purpose layers
+      responses: { '200': { description: Access granted with explainable layers }, '403': { description: Access denied with explainable layers } }
+  /patients:
+    get:
+      tags: [Clinical Data]
+      summary: List patients within the caller's scope
+      responses: { '200': { description: Patient list } }
+  /patients/{patientId}:
+    get:
+      tags: [Clinical Data]
+      parameters: [ { $ref: '#/components/parameters/PatientId' } ]
+      summary: Read scoped patient demographics
+      responses: { '200': { description: Patient }, '403': { $ref: '#/components/responses/Error' } }
+  /patients/{patientId}/records:
+    get:
+      tags: [Clinical Data]
+      parameters: [ { $ref: '#/components/parameters/PatientId' } ]
+      summary: List protected record metadata
+      responses: { '200': { description: Record metadata } }
+    post:
+      tags: [Clinical Data]
+      parameters: [ { $ref: '#/components/parameters/PatientId' } ]
+      summary: Authorize, encrypt, and store a clinical record
+      responses: { '201': { description: Encrypted record created }, '403': { $ref: '#/components/responses/Error' } }
+  /patients/{patientId}/records/{recordId}:
+    get:
+      tags: [Clinical Data]
+      parameters: [ { $ref: '#/components/parameters/PatientId' }, { name: recordId, in: path, required: true, schema: { type: string } }, { name: purpose, in: query, required: true, schema: { type: string } } ]
+      summary: Evaluate authorization and decrypt a protected record
+      responses: { '200': { description: Protected record }, '403': { $ref: '#/components/responses/Error' } }
+  /consents:
+    get:
+      tags: [Consent]
+      summary: List scoped consent grants
+      responses: { '200': { description: Consents } }
+    post:
+      tags: [Consent]
+      summary: Persist a resource- and purpose-scoped consent grant
+      responses: { '201': { description: Consent granted } }
+  /consents/{consentId}/revoke:
+    post:
+      tags: [Consent]
+      parameters: [ { name: consentId, in: path, required: true, schema: { type: string } } ]
+      summary: Revoke consent, invalidate policy cache, and append an audit event
+      responses: { '200': { description: Consent revoked } }
+  /security/events:
+    get:
+      tags: [Security Operations]
+      summary: Read the real-time security event history
+      responses: { '200': { description: Security events } }
+  /security/metrics:
+    get:
+      tags: [Security Operations]
+      summary: Read 24-hour access and alert metrics
+      responses: { '200': { description: Security metrics } }
+  /audit:
+    get:
+      tags: [Audit Integrity]
+      summary: Search and paginate tamper-evident audit history
+      responses: { '200': { description: Audit page } }
+  /audit/integrity:
+    get:
+      tags: [Audit Integrity]
+      summary: Verify the hash chain and signed checkpoints
+      responses: { '200': { description: Integrity result } }
+  /integrity/verify:
+    get:
+      tags: [Audit Integrity]
+      summary: Run an explicit integrity verification
+      responses: { '200': { description: Verification result } }
+  /break-glass/activate:
+    post:
+      tags: [Emergency Access]
+      summary: Open a time-bound, fully audited emergency authorization
+      responses: { '201': { description: Emergency session active } }
+  /break-glass/{breakGlassId}/end:
+    post:
+      tags: [Emergency Access]
+      parameters: [ { name: breakGlassId, in: path, required: true, schema: { type: string } } ]
+      summary: End emergency access and require review
+      responses: { '200': { description: Emergency session ended } }
+  /sentinel/rules:
+    get:
+      tags: [Sentinel]
+      summary: List active detection rules
+      responses: { '200': { description: Detection rules } }
+  /sentinel/alerts:
+    get:
+      tags: [Sentinel]
+      summary: List security alerts
+      responses: { '200': { description: Sentinel alerts } }
+  /fhir/{resource}:
+    get:
+      tags: [FHIR]
+      parameters:
+        - { name: resource, in: path, required: true, schema: { type: string } }
+        - { name: patient, in: query, required: true, schema: { type: string } }
+        - { name: purpose, in: query, required: true, schema: { type: string } }
+      summary: Apply zero-trust policy before returning a FHIR Bundle
+      responses: { '200': { description: Authorized FHIR Bundle }, '403': { description: FHIR OperationOutcome with denial reasons } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    PatientId: { name: patientId, in: path, required: true, schema: { type: string } }
+  requestBodies:
+    Register:
+      required: true
+      content:
+        application/json:
+          schema: { type: object, required: [name, email, password, organizationId], properties: { name: { type: string }, email: { type: string, format: email }, password: { type: string, minLength: 12 }, organizationId: { type: string }, patientId: { type: string } } }
+    Login:
+      required: true
+      content:
+        application/json:
+          schema: { type: object, required: [email, password], properties: { email: { type: string, format: email }, password: { type: string, minLength: 12 } } }
+  responses:
+    Error:
+      description: Structured error with stable code and request identifier
+      content:
+        application/json:
+          schema: { type: object, properties: { error: { type: object, properties: { code: { type: string }, message: { type: string }, requestId: { type: string } } } } }
