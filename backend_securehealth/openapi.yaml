@@ -24,7 +24,7 @@ paths:
       tags: [Authentication]
       summary: Register a patient account
       requestBody: { $ref: '#/components/requestBodies/Register' }
-      responses: { '201': { description: Account and tokens created }, '400': { $ref: '#/components/responses/Error' } }
+      responses: { '201': { description: Invited account created and verification message queued }, '400': { $ref: '#/components/responses/Error' } }
   /auth/login:
     post:
       security: []
@@ -40,10 +40,31 @@ paths:
       responses: { '200': { description: Tokens rotated }, '401': { $ref: '#/components/responses/Error' } }
   /auth/logout:
     post:
+      tags: [Authentication]
+      summary: Revoke the presented access token and refresh session
+      responses: { '204': { description: Session revoked } }
+  /auth/logout-all:
+    post:
+      tags: [Authentication]
+      summary: Revoke all refresh sessions and increment the session generation
+      responses: { '200': { description: All sessions revoked } }
+  /auth/verify-email:
+    post:
       security: []
       tags: [Authentication]
-      summary: Revoke a refresh session
-      responses: { '204': { description: Session revoked } }
+      summary: Consume a single-use verification token and activate the account
+      responses: { '200': { description: Email verified }, '400': { $ref: '#/components/responses/Error' } }
+  /auth/sessions:
+    get:
+      tags: [Authentication]
+      summary: List the current user's refresh sessions without token hashes
+      responses: { '200': { description: Session list } }
+  /auth/sessions/{sessionId}:
+    delete:
+      tags: [Authentication]
+      parameters: [ { name: sessionId, in: path, required: true, schema: { type: string } } ]
+      summary: Revoke one refresh session
+      responses: { '200': { description: Session revoked } }
   /auth/forgot-password:
     post:
       security: []
@@ -164,6 +185,11 @@ paths:
         - { name: purpose, in: query, required: true, schema: { type: string } }
       summary: Apply zero-trust policy before returning a FHIR Bundle
       responses: { '200': { description: Authorized FHIR Bundle }, '403': { description: FHIR OperationOutcome with denial reasons } }
+    post:
+      tags: [FHIR]
+      parameters: [ { name: resource, in: path, required: true, schema: { type: string } } ]
+      summary: Authorize, encrypt, and store a FHIR resource
+      responses: { '201': { description: Authorized resource created }, '403': { description: FHIR OperationOutcome with denial reasons } }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }

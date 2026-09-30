@@ -6,7 +6,7 @@ import { acknowledgeAlert, detectionRules } from "../services/sentinelService.js
 import { notFound } from "../utils/errors.js";
 
 const router = Router();
-router.use(authenticate, authorizeRoles("ADMIN", "AUDITOR"));
+router.use(authenticate, authorizeRoles("ADMINISTRATOR", "AUDITOR"));
 router.get("/rules", (_req, res) => res.json({ data: detectionRules }));
 router.get("/alerts", asyncHandler(async (req, res) => {
   const query = req.query.status ? { status: req.query.status } : {};

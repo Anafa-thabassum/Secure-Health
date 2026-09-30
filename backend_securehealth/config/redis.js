@@ -29,6 +29,15 @@ export const cache = {
   async delete(key) {
     if (client?.isReady) await client.del(key);
   },
+  async deletePattern(pattern) {
+    if (!client?.isReady) return 0;
+    let removed = 0;
+    for await (const keys of client.scanIterator({ MATCH: pattern, COUNT: 100 })) {
+      const values = Array.isArray(keys) ? keys : [keys];
+      if (values.length) removed += await client.del(values);
+    }
+    return removed;
+  },
   async increment(key, ttlSeconds = 900) {
     if (!client?.isReady) return 0;
     const count = await client.incr(key);

@@ -4,16 +4,16 @@ Node.js/Express backend for the SecureHealth academic zero-trust EHR security pr
 
 ## Included controls
 
-- JWT access and rotating refresh sessions with server-side revocation
-- RBAC, ABAC, care-relationship, purpose, resource, consent, and break-glass evaluation
+- JWT access and rotating refresh sessions with per-token revocation, session generations, concurrent-session limits, logout-all, email verification, and password-reset invalidation
+- Deny-by-default RBAC for Patient, Doctor, Nurse, Lab Technician, Administrator, and Auditor plus ABAC, care relationship, sensitivity, time, purpose, resource, consent, and break-glass evaluation
 - AES-256-GCM encryption for protected clinical payloads
-- Consent grant/revoke with Redis cache invalidation
-- Tamper-evident SHA-256 audit chain and Ed25519-signed checkpoints
+- Consent grant/revoke/expiry with wildcard Redis cache invalidation
+- Tamper-evident SHA-256 audit chain with serialized writers and Ed25519-signed checkpoints bound to exact audit events in a separately configurable database
 - Explainable allow/deny decisions with request IDs
-- Break-glass time limits and review workflow
-- Sentinel detection rules and real-time Socket.IO security events
-- FHIR gateway authorization with sanitized response payloads
-- MongoDB persistence and Redis-backed caching/rate state
+- Break-glass time limits, accessed-resource tracking, explicit expiry, and review workflow
+- Sentinel detection for volume, off-hours, cross-organization, bulk download, and repeated denial activity, plus authenticated real-time Socket.IO events
+- FHIR GET/POST authorization with minimum-necessary response filtering
+- MongoDB persistence, Redis-backed caching and distributed rate limits, bounded concurrency, request timeouts, strict schemas, and safe dependency failure responses
 
 This is an academic security prototype, not a HIPAA certification claim. Production deployments must use managed secrets, TLS, hardened network policies, key rotation, backups, observability, and an external identity provider appropriate to the organization.
 
@@ -26,6 +26,12 @@ This is an academic security prototype, not a HIPAA certification claim. Product
 5. Start the API with `npm run dev`.
 
 The API is served at `http://localhost:12000/api/v1`; operational health is available at `/health` and `/ready`.
+
+## Verification
+
+Run `npm test` for the 39-case security suite or `npm run test:coverage` for Node's source coverage report. With a local MongoDB listening on port 27019, `npm run test:integration` verifies encrypted persistence, isolated signed checkpoints, end-to-end chain integrity, and token revocation. The unit suite covers token integrity, all six roles, organization/relationship/sensitivity ABAC, active/expired/revoked consent, AES-GCM integrity and IV uniqueness, minimum-necessary filtering, break-glass scope and expiry, every Sentinel rule, FHIR policy, payload limits, strict input rejection, audit modification/deletion/reordering/insertion, and checkpoint-to-event binding.
+
+The suite is deterministic and does not require live infrastructure. Before production deployment, also execute integration and load tests against the exact managed MongoDB, separate checkpoint MongoDB, Redis, mail provider, reverse proxy, and key-management environment used in production.
 
 ## Production boundary
 

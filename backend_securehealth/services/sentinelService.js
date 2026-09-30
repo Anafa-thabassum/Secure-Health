@@ -19,6 +19,16 @@ const createAlert = async (input) => {
   return alert.toJSON();
 };
 
+export const evaluateSignals = ({ accessCount = 0, deniedCount = 0, downloadCount = 0, hour = new Date().getHours(), organizationMismatch = false }) => {
+  const signals = [];
+  if (accessCount > 50) signals.push({ rule: "HIGH_ACCESS_VOLUME", severity: "HIGH" });
+  if (deniedCount >= 5) signals.push({ rule: "REPEATED_DENIED_REQUESTS", severity: "CRITICAL" });
+  if (downloadCount >= 20) signals.push({ rule: "BULK_DOWNLOAD", severity: "CRITICAL" });
+  if (hour >= 22 || hour < 6) signals.push({ rule: "OFF_HOURS_ACCESS", severity: "MEDIUM" });
+  if (organizationMismatch) signals.push({ rule: "CROSS_ORGANIZATION_ACTIVITY", severity: "CRITICAL" });
+  return signals;
+};
+
 export const observeDecision = async ({ user, patient, evaluation, requestId, action }) => {
   const suffix = `${user.userId}:${new Date().toISOString().slice(0, 10)}`;
   const count = await cache.increment(`sentinel:access:${suffix}`, 900);
@@ -32,5 +42,16 @@ export const observeDecision = async ({ user, patient, evaluation, requestId, ac
   if (evaluation.layers.find((item) => item.key === "abac")?.reason === "Organization mismatch") await createAlert({ rule: "CROSS_ORGANIZATION_ACTIVITY", severity: "CRITICAL", title: "Cross-organization activity", reason: "The requester organization did not match the patient organization.", actorUserId: user.userId, organizationId: user.organizationId, evidence: { requestId, patientOrganizationId: patient.organizationId } });
 };
 
-export const acknowledgeAlert = async (alertId, user) => SentinelAlert.findOneAndUpdate({ alertId }, { $set: { status: "ACKNOWLEDGED", acknowledgedAt: new Date(), acknowledgedByUserId: user.userId } }, { new: true }).lean();
+export const observeBulkAccess = async ({ user, recordCount, requestId, resource = "ClinicalRecord" }) => {
+  const count = await cache.increment(`sentinel:bulk:${user.userId}`, 900);
+  const total = count + Math.max(0, recordCount - 1);
+  if (total >= 20 || recordCount >= 20) return createAlert({
+    rule: "BULK_DOWNLOAD", severity: "CRITICAL", title: "Suspicious bulk access",
+    reason: "A record export exceeded the configured minimum-necessary threshold.",
+    actorUserId: user.userId, organizationId: user.organizationId,
+    evidence: { requestId, resource, recordCount, windowCount: total },
+  });
+  return null;
+};
 
+export const acknowledgeAlert = async (alertId, user) => SentinelAlert.findOneAndUpdate({ alertId }, { $set: { status: "ACKNOWLEDGED", acknowledgedAt: new Date(), acknowledgedByUserId: user.userId } }, { new: true }).lean();

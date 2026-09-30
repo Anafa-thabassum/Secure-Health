@@ -8,17 +8,24 @@ import { permissionsForRole } from "../services/policyEngine.js";
 import { databaseHealth } from "../config/database.js";
 import { redisHealth } from "../config/redis.js";
 import { notFound } from "../utils/errors.js";
+import { revokeAllRefreshSessions } from "../services/sessionService.js";
+import { appendAuditEvent } from "../services/auditService.js";
+import { authorize } from "../middleware/authorize.js";
 
 const router = Router();
-router.use(authenticate, authorizeRoles("ADMIN"));
+router.use(authenticate, authorizeRoles("ADMINISTRATOR"));
 
-router.get("/users", asyncHandler(async (_req, res) => res.json({ data: await User.find().sort({ createdAt: -1 }).lean() })));
-router.patch("/users/:userId/status", validate(z.object({ status: z.enum(["ACTIVE", "SUSPENDED", "INVITED"]) })), asyncHandler(async (req, res) => {
-  const user = await User.findOneAndUpdate({ userId: req.params.userId }, { $set: { status: req.body.status } }, { new: true }).lean();
+router.get("/users", authorize("User", "read"), asyncHandler(async (_req, res) => res.json({ data: await User.find().sort({ createdAt: -1 }).lean() })));
+router.patch("/users/:userId/status", validate(z.object({ status: z.enum(["ACTIVE", "SUSPENDED", "INVITED"]) }).strict()), asyncHandler(async (req, res) => {
+  const user = await User.findOne({ userId: req.params.userId });
   if (!user) throw notFound("User");
-  res.json({ data: user });
+  user.status = req.body.status;
+  if (req.body.status !== "ACTIVE") { user.sessionVersion = (user.sessionVersion || 1) + 1; await revokeAllRefreshSessions(user.userId); }
+  await user.save();
+  await appendAuditEvent({ requestId: req.requestId, actor: req.user, organizationId: req.user.organizationId, resource: "User", action: "STATUS_CHANGE", decision: "INFO", reason: `User status changed to ${req.body.status}`, severity: req.body.status === "SUSPENDED" ? "HIGH" : "MEDIUM", context: { targetUserId: user.userId, ip: req.ip, userAgent: req.get("user-agent") } });
+  res.json({ data: user.toJSON() });
 }));
-router.get("/roles", (_req, res) => res.json({ data: ["PATIENT", "DOCTOR", "ADMIN", "AUDITOR"].map((role) => ({ role, permissions: permissionsForRole(role) })) }));
+router.get("/roles", (_req, res) => res.json({ data: ["PATIENT", "DOCTOR", "NURSE", "LAB_TECHNICIAN", "ADMINISTRATOR", "AUDITOR"].map((role) => ({ role, permissions: permissionsForRole(role) })) }));
 router.get("/policies", (_req, res) => res.json({ data: [
   { id: "POL-RBAC-01", name: "Role-based clinical access", status: "ENFORCED", version: 4 },
   { id: "POL-ABAC-02", name: "Organization and care relationship", status: "ENFORCED", version: 7 },
@@ -39,4 +46,3 @@ router.get("/system-health", (_req, res) => {
 });
 
 export default router;
-

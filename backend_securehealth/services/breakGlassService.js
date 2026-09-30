@@ -18,14 +18,30 @@ export const activateBreakGlass = async (input, user, context) => {
 
 export const findActiveBreakGlass = async (doctorUserId, patientId, resource) => {
   const now = new Date();
-  await BreakGlassSession.updateMany({ status: "ACTIVE", expiresAt: { $lte: now } }, { $set: { status: "REVIEW_REQUIRED" } });
   return BreakGlassSession.findOne({ doctorUserId, patientId, resource, status: "ACTIVE", expiresAt: { $gt: now } }).lean();
+};
+
+export const recordBreakGlassAccess = async (breakGlassId, { resource, recordId, requestId }) => BreakGlassSession.updateOne(
+  { breakGlassId, status: "ACTIVE", expiresAt: { $gt: new Date() } },
+  { $push: { accessedResources: { resource, recordId, requestId, accessedAt: new Date() } } },
+);
+
+export const expireBreakGlassSessions = async (now = new Date()) => {
+  const sessions = await BreakGlassSession.find({ status: "ACTIVE", expiresAt: { $lte: now } });
+  for (const session of sessions) {
+    session.status = "EXPIRED"; await session.save();
+    const requestId = ids.request();
+    const actor = { userId: "SYSTEM", role: "SYSTEM", organizationId: null };
+    await appendAuditEvent({ requestId, actor, patientId: session.patientId, resource: session.resource, action: "BREAK_GLASS_EXPIRE", purpose: "emergency", decision: "INFO", reason: "Temporary emergency authorization expired", severity: "HIGH", context: { breakGlassId: session.breakGlassId, accessedResources: session.accessedResources } });
+    await recordSecurityEvent({ requestId, type: "BREAK_GLASS_EXPIRED", title: "Emergency access expired", detail: "The temporary authorization window ended and is ready for review", severity: "HIGH", actorUserId: session.doctorUserId, patientId: session.patientId, metadata: { breakGlassId: session.breakGlassId } });
+  }
+  return sessions.length;
 };
 
 export const endBreakGlass = async (breakGlassId, user, context) => {
   const session = await BreakGlassSession.findOne({ breakGlassId });
   if (!session) throw notFound("Break-glass session");
-  if (user.role !== "ADMIN" && session.doctorUserId !== user.userId) throw new AppError(403, "ROLE_DENIED", "You cannot end this emergency session");
+  if (user.role !== "ADMINISTRATOR" && session.doctorUserId !== user.userId) throw new AppError(403, "ROLE_DENIED", "You cannot end this emergency session");
   session.status = "REVIEW_REQUIRED"; session.endedAt = new Date(); session.endedByUserId = user.userId;
   await session.save();
   await appendAuditEvent({ requestId: context.requestId, actor: user, patientId: session.patientId, organizationId: user.organizationId, resource: session.resource, action: "BREAK_GLASS_END", purpose: "emergency", decision: "INFO", reason: "Emergency access ended; administrative review required", severity: "HIGH", context: { breakGlassId } });
@@ -40,4 +56,3 @@ export const reviewBreakGlass = async (breakGlassId, input, user, context) => {
   await appendAuditEvent({ requestId: context.requestId, actor: user, patientId: session.patientId, organizationId: user.organizationId, resource: session.resource, action: "BREAK_GLASS_REVIEW", decision: "INFO", reason: input.outcome, severity: "HIGH", context: { breakGlassId } });
   return session.toJSON();
 };
-

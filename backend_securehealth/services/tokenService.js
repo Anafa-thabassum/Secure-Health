@@ -7,7 +7,7 @@ export const hashToken = (token) => crypto.createHash("sha256").update(token).di
 
 export const createAccessToken = (user) => {
   const { jwt: config } = getConfig();
-  return jwt.sign({ role: user.role, organizationId: user.organizationId, patientId: user.patientId || undefined }, config.accessSecret, {
+  return jwt.sign({ role: user.role, organizationId: user.organizationId, patientId: user.patientId || undefined, sv: user.sessionVersion || 1 }, config.accessSecret, {
     subject: user.userId,
     issuer: config.issuer,
     audience: config.audience,
@@ -18,7 +18,7 @@ export const createAccessToken = (user) => {
 
 export const createRefreshToken = (user, sessionId) => {
   const { jwt: config } = getConfig();
-  return jwt.sign({ type: "refresh", sid: sessionId }, config.refreshSecret, {
+  return jwt.sign({ type: "refresh", sid: sessionId, sv: user.sessionVersion || 1 }, config.refreshSecret, {
     subject: user.userId,
     issuer: config.issuer,
     audience: config.audience,
@@ -40,4 +40,3 @@ export const verifyRefreshToken = (token) => {
 };
 
 export const decodeExpiry = (token) => new Date(jwt.decode(token).exp * 1000);
-

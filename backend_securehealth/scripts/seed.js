@@ -23,13 +23,16 @@ await connectDatabase(config.mongoUri);
 
 await Promise.all([User, Patient, ClinicalRecord, Consent, AuditEvent, AuditCheckpoint, SecurityEvent, SentinelAlert, FHIRRequest, BreakGlassSession, RefreshSession, PasswordResetToken].map((model) => model.deleteMany({})));
 const passwordHash = await bcrypt.hash("SecureHealth!2026", 12);
+const verified = new Date();
 
 await User.insertMany([
-  { userId: "USR-ADMIN", email: "admin@securehealth.demo", passwordHash, name: "Elena Torres", role: "ADMIN", organizationId: "ORG-NORTHSTAR", status: "ACTIVE" },
-  { userId: "USR-0182", email: "maya.chen@securehealth.demo", passwordHash, name: "Dr. Maya Chen", role: "DOCTOR", organizationId: "ORG-NORTHSTAR", careRelationships: ["P001", "P014", "P027", "P038"], status: "ACTIVE" },
-  { userId: "USR-0219", email: "amir.khan@securehealth.demo", passwordHash, name: "Dr. Amir Khan", role: "DOCTOR", organizationId: "ORG-NORTHSTAR", careRelationships: ["P014", "P038"], status: "ACTIVE" },
-  { userId: "USR-P001", email: "avery.morgan@securehealth.demo", passwordHash, name: "Avery Morgan", role: "PATIENT", organizationId: "ORG-NORTHSTAR", patientId: "P001", status: "ACTIVE" },
-  { userId: "USR-AUDIT", email: "auditor@securehealth.demo", passwordHash, name: "Morgan Ellis", role: "AUDITOR", organizationId: "ORG-NORTHSTAR", status: "ACTIVE" },
+  { userId: "USR-ADMIN", email: "admin@securehealth.demo", passwordHash, name: "Elena Torres", role: "ADMINISTRATOR", organizationId: "ORG-NORTHSTAR", status: "ACTIVE", emailVerifiedAt: verified },
+  { userId: "USR-0182", email: "maya.chen@securehealth.demo", passwordHash, name: "Dr. Maya Chen", role: "DOCTOR", organizationId: "ORG-NORTHSTAR", careRelationships: ["P001", "P014", "P027", "P038"], status: "ACTIVE", emailVerifiedAt: verified },
+  { userId: "USR-0219", email: "amir.khan@securehealth.demo", passwordHash, name: "Dr. Amir Khan", role: "DOCTOR", organizationId: "ORG-NORTHSTAR", careRelationships: ["P014", "P038"], status: "ACTIVE", emailVerifiedAt: verified },
+  { userId: "USR-NURSE", email: "nurse@securehealth.demo", passwordHash, name: "Nurse Riley", role: "NURSE", organizationId: "ORG-NORTHSTAR", careRelationships: ["P001", "P014"], status: "ACTIVE", emailVerifiedAt: verified },
+  { userId: "USR-LAB", email: "lab@securehealth.demo", passwordHash, name: "Jamie Lab", role: "LAB_TECHNICIAN", organizationId: "ORG-NORTHSTAR", careRelationships: ["P014"], status: "ACTIVE", emailVerifiedAt: verified },
+  { userId: "USR-P001", email: "avery.morgan@securehealth.demo", passwordHash, name: "Avery Morgan", role: "PATIENT", organizationId: "ORG-NORTHSTAR", patientId: "P001", status: "ACTIVE", emailVerifiedAt: verified },
+  { userId: "USR-AUDIT", email: "auditor@securehealth.demo", passwordHash, name: "Morgan Ellis", role: "AUDITOR", organizationId: "ORG-NORTHSTAR", status: "ACTIVE", emailVerifiedAt: verified },
 ]);
 
 await Patient.insertMany([

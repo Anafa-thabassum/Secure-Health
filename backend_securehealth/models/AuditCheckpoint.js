@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const schema = new mongoose.Schema({
+export const auditCheckpointSchema = new mongoose.Schema({
   checkpointId: { type: String, required: true, unique: true, immutable: true },
   chainPosition: { type: Number, required: true, unique: true, immutable: true },
   eventId: { type: String, required: true, immutable: true },
@@ -8,6 +8,7 @@ const schema = new mongoose.Schema({
   signature: { type: String, required: true, immutable: true },
   publicKeyFingerprint: { type: String, required: true, immutable: true },
   timestamp: { type: Date, required: true, immutable: true },
-}, { timestamps: false, strict: "throw" });
+}, { timestamps: false, strict: "throw", collection: "audit_checkpoints" });
 
-export const AuditCheckpoint = mongoose.models.AuditCheckpoint || mongoose.model("AuditCheckpoint", schema);
+export const createAuditCheckpointModel = (connection = mongoose) => connection.models.AuditCheckpoint || connection.model("AuditCheckpoint", auditCheckpointSchema);
+export const AuditCheckpoint = createAuditCheckpointModel();

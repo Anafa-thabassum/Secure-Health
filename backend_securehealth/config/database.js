@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
-export const connectDatabase = async (uri) => {
+export const connectDatabase = async (uri, { tls = false } = {}) => {
   mongoose.set("strictQuery", true);
-  await mongoose.connect(uri, { serverSelectionTimeoutMS: 8_000 });
+  await mongoose.connect(uri, { serverSelectionTimeoutMS: 8_000, maxPoolSize: 20, minPoolSize: 2, ...(tls ? { tls: true } : {}) });
   return mongoose.connection;
 };
 

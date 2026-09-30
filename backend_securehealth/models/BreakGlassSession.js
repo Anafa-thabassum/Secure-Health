@@ -11,6 +11,7 @@ const schema = new mongoose.Schema({
   expiresAt: { type: Date, required: true, index: true },
   endedAt: Date,
   endedByUserId: String,
+  accessedResources: { type: [{ resource: String, recordId: String, requestId: String, accessedAt: Date }], default: [] },
   review: { type: mongoose.Schema.Types.Mixed, default: null },
 }, { timestamps: true, minimize: false });
 

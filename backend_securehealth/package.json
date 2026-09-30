@@ -8,8 +8,10 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "seed": "node scripts/seed.js",
-    "test": "node --test --test-concurrency=1 tests",
-    "test:watch": "node --test --watch tests"
+    "test:integration": "node scripts/integration-smoke.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js tests/*/*.test.js",
+    "test:watch": "node --test --watch tests/*.test.js tests/*/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage --test-concurrency=1 tests/*.test.js tests/*/*.test.js"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +25,7 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.10.2",
+    "rate-limit-redis": "^4.2.3",
     "redis": "^5.8.3",
     "socket.io": "^4.8.1",
     "zod": "^3.25.76"
