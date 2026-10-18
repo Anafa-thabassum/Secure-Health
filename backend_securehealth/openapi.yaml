@@ -16,6 +16,7 @@ tags:
   - name: Audit Integrity
   - name: Emergency Access
   - name: Sentinel
+  - name: Mobile Push
   - name: FHIR
 paths:
   /auth/register:
@@ -140,6 +141,35 @@ paths:
       tags: [Security Operations]
       summary: Read 24-hour access and alert metrics
       responses: { '200': { description: Security metrics } }
+  /push/devices:
+    get:
+      tags: [Mobile Push]
+      summary: List the current administrator or auditor's push devices
+      responses: { '200': { description: Device registrations without provider tokens }, '403': { $ref: '#/components/responses/Error' } }
+    post:
+      tags: [Mobile Push]
+      summary: Register or refresh an encrypted FCM or APNs device token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [platform, token]
+              properties:
+                platform: { type: string, enum: [ANDROID, IOS] }
+                token: { type: string, minLength: 20, maxLength: 4096 }
+                deviceId: { type: string, maxLength: 200 }
+                label: { type: string, maxLength: 100 }
+                appId: { type: string, maxLength: 200 }
+      responses: { '201': { description: Device registered }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /push/devices/{registrationId}:
+    delete:
+      tags: [Mobile Push]
+      summary: Revoke one of the current operator's push devices
+      parameters: [ { name: registrationId, in: path, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Device revoked }, '404': { $ref: '#/components/responses/Error' } }
   /audit:
     get:
       tags: [Audit Integrity]

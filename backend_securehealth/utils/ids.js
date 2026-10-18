@@ -8,6 +8,7 @@ export const ids = {
   consent: () => `CON-${short()}`,
   breakGlass: () => `BRK-${short()}`,
   alert: () => `SEN-${short()}`,
+  device: () => `DEV-${short()}`,
   fhir: () => `FHIR-${short()}`,
   session: () => crypto.randomUUID(),
 };

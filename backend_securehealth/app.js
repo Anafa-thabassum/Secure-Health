@@ -24,6 +24,7 @@ import fhirRoutes from "./routes/fhirRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import recordRoutes from "./routes/recordRoutes.js";
 import emergencyRoutes from "./routes/emergencyRoutes.js";
+import pushRoutes from "./routes/pushRoutes.js";
 
 export const createApp = () => {
   const config = getConfig();
@@ -56,6 +57,7 @@ export const createApp = () => {
   app.use(`${config.apiPrefix}/break-glass`, breakGlassRoutes);
   app.use(`${config.apiPrefix}/emergency`, emergencyRoutes);
   app.use(`${config.apiPrefix}/sentinel`, sentinelRoutes);
+  app.use(`${config.apiPrefix}/push`, pushRoutes);
   app.use(`${config.apiPrefix}/fhir`, fhirRoutes);
   app.use(`${config.apiPrefix}/admin`, adminRoutes);
   app.use(notFoundHandler);

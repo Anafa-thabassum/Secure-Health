@@ -36,6 +36,7 @@ yarn-error.log*
 # backend dependencies and local recovery artifacts
 backend_securehealth/node_modules/
 backend_securehealth/.env
+backend_securehealth/.secrets/
 backend_securehealth/.gitignore*
 
 # vercel
