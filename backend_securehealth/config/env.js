@@ -69,6 +69,7 @@ export const getConfig = () => {
       privateKeyBase64: process.env.AUDIT_SIGNING_PRIVATE_KEY_BASE64 || "",
       publicKeyBase64: process.env.AUDIT_SIGNING_PUBLIC_KEY_BASE64 || "",
       checkpointInterval: int(process.env.AUDIT_CHECKPOINT_INTERVAL, 100),
+      integrityCheckIntervalMs: Math.max(10_000, int(process.env.AUDIT_INTEGRITY_CHECK_INTERVAL_MS, 60_000)),
     },
     allowDemoTamper: bool(process.env.ALLOW_DEMO_TAMPER),
     email: {

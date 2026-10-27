@@ -264,12 +264,13 @@ const deliverEvent = async (event) => {
     const actor = await User.findOne({ userId: event.actorUserId }).select("organizationId").lean();
     organizationId = actor?.organizationId;
   }
-  const registrations = organizationId
-    ? await DeviceRegistration.find({ status: "ACTIVE", organizationId }).select("+tokenEnvelope").lean()
+  const globalAlert = event.metadata?.globalAlert === true;
+  const registrations = organizationId || globalAlert
+    ? await DeviceRegistration.find({ status: "ACTIVE", ...(organizationId ? { organizationId } : {}) }).select("+tokenEnvelope").lean()
     : [];
   const authorizedUsers = await User.find({
     userId: { $in: registrations.map((registration) => registration.userId) },
-    organizationId,
+    ...(organizationId ? { organizationId } : {}),
     status: "ACTIVE",
     role: { $in: ["ADMINISTRATOR", "AUDITOR"] },
   }).select("userId").lean();
